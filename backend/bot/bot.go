@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"sync"
 	"time"
 
@@ -28,8 +27,6 @@ type Bot struct {
 	queue     actionQueue
 	newsUsers map[string]string
 }
-
-var generalChannelID = os.Getenv("GENERAL_CHANNEL_ID")
 
 func CreateBot(token string) (*Bot, error) {
 	discord, err := discordgo.New("Bot " + token)
@@ -60,7 +57,17 @@ func CreateBot(token string) (*Bot, error) {
 	discord.AddHandler(func(s *discordgo.Session, event *discordgo.Ready) {
 		// Set the playing status.
 		s.UpdateGameStatus(0, "Idle Simulator")
-		s.ChannelMessageSend(generalChannelID, "Look out look out here's Trevor the Trout!")
+
+		fmt.Println("here")
+
+		for _, server := range s.State.Guilds {
+			channels, _ := s.GuildChannels(server.ID)
+			for _, c := range channels {
+				if c.Name == "general" {
+					s.ChannelMessageSend(c.ID, "Look out look out here's Trevor the Trout!")
+				}	
+			}
+		}
 
 		// Set bot to ready
 		bot.isReady = true

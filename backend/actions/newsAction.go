@@ -2,7 +2,6 @@ package actions
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -16,9 +15,6 @@ type NewsAction struct {
 	AccessToken string   `json:"access"`
 	User        string   `json:"-"`
 }
-
-// Target Channel for News
-var newsChannelID = os.Getenv("NEWS_CHANNEL_ID")
 
 func (action NewsAction) Execute(s *discordgo.Session) error {
 
@@ -48,9 +44,20 @@ func (action NewsAction) Execute(s *discordgo.Session) error {
 		message.Fields = nil
 	}
 
-	_, err := s.ChannelMessageSendEmbed(newsChannelID, &message)
+	for _, server := range s.State.Guilds {
+		channels, _ := s.GuildChannels(server.ID)
+		for _, c := range channels {
+			if c.Name == "tech-news" {
+				_, err := s.ChannelMessageSendEmbed(c.ID, &message)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}	
+		}
+	}
 
-	return err
+
+	return nil
 }
 
 func joinTags(tags []string) string {
