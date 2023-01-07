@@ -41,7 +41,7 @@ func CreateBot(token string) (*Bot, error) {
 	}
 
 	// Get original Access
-	accessFile, err := ioutil.ReadFile("access.json")
+	accessFile, err := ioutil.ReadFile("/app/data/access.json")
 	if err == nil {
 
 		var access map[string]string
@@ -95,7 +95,7 @@ func (bot *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 			bot.newsUsers[m.Author.Username] = password
 
 			jsonByte, _ := json.Marshal(bot.newsUsers)
-			err := ioutil.WriteFile("access.json", jsonByte, 0644)
+			err := ioutil.WriteFile("/app/data/access.json", jsonByte, 0644)
 			if err != nil {
 				fmt.Println("Error writing to access.json:", err)
 			}
