@@ -77,7 +77,7 @@ export default {
                 this.form.title = "#" + this.form.title;
             }
 
-            fetch("http://localhost:3000/news", {
+            fetch("http://light-candle.bnr.la:3000/news", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"

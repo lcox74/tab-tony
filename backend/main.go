@@ -36,7 +36,7 @@ func main() {
     router.POST("/news", postNews)
     router.GET("/news/:auth", getNewsAuth)
 
-    router.Run("localhost:3000")
+    router.Run("0.0.0.0:3000")
 
 	discordBot.Stop()
 }

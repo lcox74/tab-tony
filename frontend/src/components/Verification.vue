@@ -73,7 +73,7 @@ export default {
                 return;
             }
 
-            fetch("http://localhost:3000/news/" + this.accesskey)
+            fetch("http://light-candle.bnr.la:3000/news/" + this.accesskey)
                 .then(response => {
                     if (response.status === 200) {
                         this.validate(this.accesskey);
