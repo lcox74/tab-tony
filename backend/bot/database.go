@@ -29,11 +29,11 @@ type AccessRecord struct {
 }
 
 func (r *AccessRecord) IsNewsScope() bool {
-	return !r.ScopeNews.Valid
+	return r.ScopeNews.Valid
 }
 
 func (r *AccessRecord) IsZerotierScope() bool {
-	return !r.ScopeZerotier.Valid
+	return r.ScopeZerotier.Valid
 }
 
 const create string = `
