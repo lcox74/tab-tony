@@ -20,8 +20,7 @@
                 </div>
                 <div class="flex-none">
                     <button
-                        class="mx-2 fill-current bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                        :class="{'opacity-50': accesskeyValid}" @click="checkValid" :disabled="accesskeyValid">
+                        class="mx-2 fill-current bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" @click="checkValid">
                         Verify
                     </button>
 
@@ -51,31 +50,11 @@ export default {
             accesskey: ""
         }
     },
-    computed: {
-        accesskeyValid() {
-            var decoded = "";
-            try {
-                decoded = atob(this.accesskey);
-            } catch {
-                return true;
-            }
-            return decoded.length !== 20;
-        }
-    },
     methods: {
         checkValid() {
-            console.log("Checking if valid")
-            console.log(this.accesskey)
-
-            if (this.accesskeyValid) {
-                return;
-            }
-
-
             // Make the API request
             NewsApi.validateAccess(this.accesskey,
                 (data) => {
-                    console.log(data);
                     this.validate(this.accesskey);
                     this.accesskey = "";
                 },
