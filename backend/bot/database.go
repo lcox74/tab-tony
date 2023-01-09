@@ -24,16 +24,16 @@ type AccessRecord struct {
 	UserID string
 	UserName string
 	AccessKey string
-	ScopeNews time.Time
-	ScopeZerotier time.Time
+	ScopeNews sql.NullTime
+	ScopeZerotier sql.NullTime
 }
 
 func (r *AccessRecord) IsNewsScope() bool {
-	return !r.ScopeNews.IsZero()
+	return !r.ScopeNews.Valid
 }
 
 func (r *AccessRecord) IsZerotierScope() bool {
-	return !r.ScopeZerotier.IsZero()
+	return !r.ScopeZerotier.Valid
 }
 
 const create string = `
@@ -139,10 +139,10 @@ func (db *BotDatabase) AddAccess(userId string, userName string, scope Scope) (A
 		switch scope {
 		case SCOPE_NEWS:
 			_, err = db.db.Exec("INSERT INTO access (user_id, user_name, access_key, scope_news) VALUES (?, ?, ?, ?)", userId, userName, access.AccessKey, time.Now())
-			access.ScopeNews = time.Now()
+			access.ScopeNews = sql.NullTime{Time: time.Now(), Valid: true}
 		case SCOPE_ZEROTIER:
 			_, err = db.db.Exec("INSERT INTO access (user_id, user_name, access_key, scope_zerotier) VALUES (?, ?, ?, ?)", userId, userName, access.AccessKey, time.Now())
-			access.ScopeZerotier = time.Now()
+			access.ScopeZerotier = sql.NullTime{Time: time.Now(), Valid: true}
 		}
 
 		if err != nil {
