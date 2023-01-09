@@ -23,6 +23,71 @@ type Bot struct {
 	Db BotDatabase
 }
 
+var commandHandlers = map[string]func (bot *Bot, s *discordgo.Session, i *discordgo.InteractionCreate){
+	"request": func (bot *Bot, s *discordgo.Session, i *discordgo.InteractionCreate) {
+
+		// Access options in the order provided by the user.
+		options := i.ApplicationCommandData().Options
+
+		// Go through the services
+		for _, option := range options {
+			var scope Scope
+			switch option.Value {
+			case "news":
+				scope = SCOPE_NEWS
+			case "zerotier":
+				scope = SCOPE_ZEROTIER
+			}
+
+			// Get the user
+			var user *discordgo.User = getuser(i)
+			if user == nil {
+				return
+			}
+
+			// Add the access
+			access, err := bot.Db.AddAccess(user.ID, user.Username, scope)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			// Send the access
+			bot.SendAccessDM(user, access)
+
+			// Send the response
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("I've just updated your access, please check your DMs <@%s>", user.ID),
+				},
+			})
+		}
+	},
+	"join-net": func (bot *Bot, s *discordgo.Session, i *discordgo.InteractionCreate) {
+		fmt.Println("Join Net")
+
+		// Get the user
+		var user *discordgo.User = getuser(i)
+		if user == nil {
+			return
+		}
+		fmt.Printf("User: %s\n", user.Username)
+
+		// Access options in the order provided by the user.
+		options := i.ApplicationCommandData().Options
+
+		for _, option := range options {
+			switch option.Name {
+			case "address":
+				fmt.Printf("addr: %s\n", option.Value)
+			case "nickname":
+				fmt.Printf("nickname: %s\n", option.Value)				
+			}
+		}
+	},
+}
+
 
 func CreateBot(token string) (*Bot, error) {
 	discord, err := discordgo.New("Bot " + token)
@@ -53,50 +118,10 @@ func CreateBot(token string) (*Bot, error) {
 		fmt.Printf("Bot is ready! (User: %s)\n", event.User.Username)
 	})
 
-	// Register a handler for the messageCreate event
-	// discord.AddHandler(bot.onMessage)
+	// Register a handler for handling Application Commands
 	discord.AddHandler(func (s *discordgo.Session, i *discordgo.InteractionCreate) {
-		// Access options in the order provided by the user.
-		options := i.ApplicationCommandData().Options
-
-		// Go through the services
-		for _, option := range options {
-			var scope Scope
-			switch option.Value {
-			case "news":
-				scope = SCOPE_NEWS
-			case "zerotier":
-				scope = SCOPE_ZEROTIER
-			}
-
-			// Get the user
-			var user *discordgo.User
-			if i.Member == nil {
-				user = i.User
-			} else {
-				user = i.Member.User
-			}
-			if user == nil {
-				return
-			}
-
-			// Add the access
-			access, err := bot.Db.AddAccess(user.ID, user.Username, scope)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			// Send the access
-			bot.SendAccessDM(user, access)
-
-			// Send the response
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: fmt.Sprintf("I've just updated your access, please check your DMs <@%s>", user.ID),
-				},
-			})
+		if handler, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+			handler(bot, s, i)
 		}
 	})
 
@@ -129,6 +154,26 @@ func CreateBot(token string) (*Bot, error) {
 						Value: "zerotier",
 					},
 				},
+			},
+		},
+	})
+
+	// Register an App command for the `join-net` command
+	discord.ApplicationCommandCreate(discord.State.User.ID, "", &discordgo.ApplicationCommand{
+		Name:        "join-net",
+		Description: "Add a device to the TAB Zerotier network",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Type:        discordgo.ApplicationCommandOptionString,
+				Name:        "address",
+				Description: "ZeroTier address eg. `34994c713f`",
+				Required:    true,
+			},
+			{
+				Type:        discordgo.ApplicationCommandOptionString,
+				Name:        "nickname",
+				Description: "Nickname for the device eg. `Tony's Desktop`",
+				Required:    false,
 			},
 		},
 	})
@@ -230,4 +275,11 @@ func (bot *Bot) SendAccessDM(user *discordgo.User, access AccessRecord) error {
 	}
 
 	return nil
+}
+
+func getuser(i *discordgo.InteractionCreate) *discordgo.User {
+	if i.Member == nil {
+		return i.User
+	} 
+	return i.Member.User		
 }
