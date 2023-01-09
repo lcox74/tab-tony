@@ -1,5 +1,31 @@
 import { createApp } from 'vue'
-import './style.css'
-import App from './App.vue'
+import { createRouter, createWebHistory } from 'vue-router';
 
-createApp(App).mount('#app')
+import './style.css'
+
+// Pages
+import App from './App.vue'
+import HomePage from './pages/HomePage.vue';
+import NewsPage from './pages/NewsPage.vue';
+
+// Set Routes
+const router = createRouter({
+    history: createWebHistory(),
+    routes: [
+        { 
+            path: '/', 
+            name: 'Home',
+            component: HomePage
+        },
+        {
+            path: '/news',
+            name: 'News',
+            component: NewsPage 
+        },
+        // { path: '/zerotier', component: ZerotierPage },
+    ],
+});
+
+createApp(App)
+.use(router)
+.mount('#app')

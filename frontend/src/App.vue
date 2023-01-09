@@ -1,7 +1,3 @@
-<script setup>
-import NewsPage from './pages/NewsPage.vue';
-</script>
-
 <template>
-    <NewsPage />
+    <router-view></router-view>
 </template>

@@ -9,6 +9,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/prometheus/client_golang v1.7.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
@@ -19,7 +20,7 @@ require (
 )
 
 require (
-	github.com/beego/beego v1.12.11
+	github.com/beego/beego v1.10.1
 	github.com/bwmarrin/discordgo v0.26.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-chi/cors v1.2.1
@@ -27,6 +28,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
 	github.com/goccy/go-json v0.9.11 // indirect
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect

@@ -1,7 +1,7 @@
 # Builder
 FROM golang:1.18-alpine AS builder
 
-RUN apk update && apk add git
+RUN apk update && apk add git gcc musl-dev
 
 # Set working directory
 COPY ./ /src/
@@ -9,7 +9,7 @@ WORKDIR /src
 
 # Get packages and Build
 RUN go mod download
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /bin/backend .
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o /bin/backend .
 
 # Runner
 FROM alpine:latest as deploy

@@ -17,6 +17,8 @@ var discordBot *bot.Bot
 
 func main() {
 	var err error
+
+	fmt.Println(token)
 	
 	// Create a new Discord session using the provided bot token.
 	discordBot, err = bot.CreateBot(token)
@@ -24,9 +26,8 @@ func main() {
 		fmt.Println("error creating Discord session,", err)
 		return
 	}
+	defer discordBot.Stop()
 
-	// Open the websocket and begin listening.
-	discordBot.Start()
 	go discordBot.Run()
 
 	router := gin.Default()
@@ -38,7 +39,6 @@ func main() {
 
     router.Run("0.0.0.0:3000")
 
-	discordBot.Stop()
 }
 
 
@@ -51,12 +51,20 @@ func postNews(c *gin.Context) {
 	}
 
 	// Check Auth
-	newsPost.User = discordBot.GetUser(newsPost.AccessToken)
-	if newsPost.User == "" {
+	if !discordBot.GetUser(bot.SCOPE_NEWS, newsPost.AccessToken) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+	
+	// Fetch User Data
+	accessRecord, err := discordBot.Db.ValidateAccessKey(newsPost.AccessToken)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
 
+	// Add User Data
+	newsPost.User = accessRecord.UserName
 	discordBot.AddAction(newsPost)
 
 	fmt.Println(newsPost)
@@ -64,16 +72,16 @@ func postNews(c *gin.Context) {
 }
 
 func getNewsAuth(c *gin.Context) {
-	user := c.Param("auth")
-	if user == "" {
+	access_key := c.Param("auth")
+	if access_key == "" {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	if discordBot.GetUser(user) == "" {
+	if !discordBot.GetUser(bot.SCOPE_NEWS, access_key) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"access": user})
+	c.IndentedJSON(http.StatusOK, gin.H{"access": access_key})
 }

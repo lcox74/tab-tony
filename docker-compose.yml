@@ -8,12 +8,16 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
     volumes:
-      - ./backend/data:/app/data
+      - ./database:/app/data
   frontend:
     container_name: frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    environment:
+      - BACKEND_URL=http://light-candle.bnr.la:3000
     ports:
       - "8080:80"

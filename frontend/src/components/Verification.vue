@@ -16,7 +16,7 @@
                 <div class="flex-grow">
                     <input
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                        type="text" placeholder="Access Key..." @keyup="accesskeyChange">
+                        type="text" placeholder="Access Key..." :value="accesskey" @input="e => accesskey = e.target.value" >
                 </div>
                 <div class="flex-none">
                     <button
@@ -36,6 +36,7 @@
 </template>
 <script>
 
+import NewsApi from "../webapi/api_news.js";
 
 export default {
     name: 'Verification',
@@ -62,9 +63,6 @@ export default {
         }
     },
     methods: {
-        accesskeyChange(e) {
-            this.accesskey = e.target.value;
-        },
         checkValid() {
             console.log("Checking if valid")
             console.log(this.accesskey)
@@ -73,14 +71,18 @@ export default {
                 return;
             }
 
-            fetch("http://light-candle.bnr.la:3000/news/" + this.accesskey)
-                .then(response => {
-                    if (response.status === 200) {
-                        this.validate(this.accesskey);
-                    }
-                }).catch(err => {
+
+            // Make the API request
+            NewsApi.validateAccess(this.accesskey,
+                (data) => {
+                    console.log(data);
+                    this.validate(this.accesskey);
+                    this.accesskey = "";
+                },
+                (err) => {
                     alert("Invalid Key");
-                })
+                }
+            );
 
         }
     }

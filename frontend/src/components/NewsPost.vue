@@ -33,6 +33,8 @@
 </template>
 <script>
 
+import NewsApi from "../webapi/api_news.js";
+
 export default {
     name: 'NewsPost',
     props: {
@@ -68,27 +70,28 @@ export default {
     methods: {
         createPost() {
             this.form.access = this.accesskey;
+
+            // Check if all required fields are filled out
             if (this.form.title === "" || this.form.content === "" || this.form.url === "") {
                 alert("Please fill out all fields");
                 return;
             }
 
+            // Prepend a # to the title if there isn't one there
             if (this.form.title[0] != "#") {
                 this.form.title = "#" + this.form.title;
             }
 
-            fetch("http://light-candle.bnr.la:3000/news", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
+            // Make the API request
+            NewsApi.createNewsPost(this.form,
+                (data) => {
+                    console.log(data);
+                    this.form.clean();
                 },
-                body: JSON.stringify(this.form)
-            }).then(res => res.json()).then(data => {
-                console.log(data);
-                this.form.clean();
-            }).catch(err => {
-                console.log(err);
-            })
+                (err) => {
+                    console.log(err);
+                }
+            );
 
         }
     }

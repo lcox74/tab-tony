@@ -1,18 +1,13 @@
 package bot
 
 import (
-	"crypto/rand"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/lcox74/discord-bot/actions"
-	"github.com/lcox74/discord-bot/requests"
 )
 
 type actionQueue struct {
@@ -24,9 +19,10 @@ type Bot struct {
 	discord *discordgo.Session
 	isReady bool
 
-	queue     actionQueue
-	newsUsers map[string]string
+	queue  actionQueue
+	Db BotDatabase
 }
+
 
 func CreateBot(token string) (*Bot, error) {
 	discord, err := discordgo.New("Bot " + token)
@@ -35,39 +31,20 @@ func CreateBot(token string) (*Bot, error) {
 	}
 
 	bot := &Bot{
-		discord:   discord,
-		isReady:   false,
-		newsUsers: make(map[string]string),
+		discord: discord,
+		isReady: false,
 	}
 
-	// Get original Access
-	accessFile, err := ioutil.ReadFile("/app/data/access.json")
-	if err == nil {
-
-		var access map[string]string
-		err = json.Unmarshal(accessFile, &access)
-		if err != nil {
-			return nil, err
-		}
-
-		bot.newsUsers = access
+	// Open database
+	bot.Db, err = OpenAccessDb()
+	if err != nil {
+		return nil, err
 	}
 
 	// Regiser a handler for the ready event
 	discord.AddHandler(func(s *discordgo.Session, event *discordgo.Ready) {
 		// Set the playing status.
 		s.UpdateGameStatus(0, "Idle Simulator")
-
-		fmt.Println("here")
-
-		for _, server := range s.State.Guilds {
-			channels, _ := s.GuildChannels(server.ID)
-			for _, c := range channels {
-				if c.Name == "general" {
-					s.ChannelMessageSend(c.ID, "Look out look out here's Trevor the Trout!")
-				}	
-			}
-		}
 
 		// Set bot to ready
 		bot.isReady = true
@@ -76,32 +53,90 @@ func CreateBot(token string) (*Bot, error) {
 		fmt.Printf("Bot is ready! (User: %s)\n", event.User.Username)
 	})
 
-	discord.AddHandler(bot.onMessage)
+	// Register a handler for the messageCreate event
+	// discord.AddHandler(bot.onMessage)
+	discord.AddHandler(func (s *discordgo.Session, i *discordgo.InteractionCreate) {
+		// Access options in the order provided by the user.
+		options := i.ApplicationCommandData().Options
+
+		// Go through the services
+		for _, option := range options {
+			var scope Scope
+			switch option.Value {
+			case "news":
+				scope = SCOPE_NEWS
+			case "zerotier":
+				scope = SCOPE_ZEROTIER
+			}
+
+			// Get the user
+			var user *discordgo.User
+			if i.Member == nil {
+				user = i.User
+			} else {
+				user = i.Member.User
+			}
+			if user == nil {
+				return
+			}
+
+			// Add the access
+			access, err := bot.Db.AddAccess(user.ID, user.Username, scope)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			// Send the access
+			bot.SendAccessDM(user, access)
+
+			// Send the response
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("I've just updated your access, please check your DMs <@%s>", user.ID),
+				},
+			})
+		}
+	})
+
+
+	// Open the websocket and begin listening.
+	err = discord.Open()
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+
+	// Register an App command for the `request` command
+	discord.ApplicationCommandCreate(discord.State.User.ID, "", &discordgo.ApplicationCommand{
+		Name:        "request",
+		Description: "Request something access for a service",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Type:        discordgo.ApplicationCommandOptionString,
+				Name:        "service",
+				Description: "The service you want to request access for",
+				Required:    true,
+				Choices: []*discordgo.ApplicationCommandOptionChoice{
+					{
+						Name:  "News",
+						Value: "news",
+					},
+					{
+						Name:  "Zerotier",
+						Value: "zerotier",
+					},
+				},
+			},
+		},
+	})
+
+
+	
 
 	return bot, nil
-}
-
-func (bot *Bot) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Ignore all messages created by the bot itself
-	if m.Author.ID == s.State.User.ID {
-		return
-	}
-
-	if m.Content == "/request news" {
-		fmt.Printf("Requesting news for %s\n", m.Author.Username)
-		password, ok := bot.newsUsers[m.Author.Username]
-		if !ok {
-			password = randomPassword() // TODO: Check Collisions
-			bot.newsUsers[m.Author.Username] = password
-
-			jsonByte, _ := json.Marshal(bot.newsUsers)
-			err := ioutil.WriteFile("/app/data/access.json", jsonByte, 0644)
-			if err != nil {
-				fmt.Println("Error writing to access.json:", err)
-			}
-		}
-		requests.NewsRequest(s, m, password)
-	}
 }
 
 func (bot *Bot) AddAction(action actions.Action) {
@@ -111,18 +146,11 @@ func (bot *Bot) AddAction(action actions.Action) {
 	bot.queue.messages = append(bot.queue.messages, action)
 }
 
-func (bot *Bot) Start() error {
-	// Open the websocket and begin listening.
-	err := bot.discord.Open()
-	if err != nil {
-		return err
-	}
-	return nil
-}
 
 func (bot *Bot) Stop() error {
 	// Cleanly close down the Discord session.
 	bot.discord.Close()
+	bot.Db.Close()
 	return nil
 }
 
@@ -143,26 +171,63 @@ func (bot *Bot) Run() {
 	}
 }
 
-func (bot *Bot) GetUser(access string) string {
+func (bot *Bot) GetUser(scope Scope, access string) bool {
 
-	for id, password := range bot.newsUsers {
-		if password == access {
-			return id
-		}
+	record, err := bot.Db.ValidateAccessKey(access)
+	if err != nil {
+		fmt.Println(err)
+		return false
 	}
-	return ""
+
+	switch scope {
+	case SCOPE_NEWS:
+		return record.IsNewsScope()
+	case SCOPE_ZEROTIER:
+		return record.IsZerotierScope()
+	}
+
+	return false
 }
 
-func randomPassword() string {
-	b := make([]byte, 32)
-	rand.Read(b)
+// Send Access DM
+func (bot *Bot) SendAccessDM(user *discordgo.User, access AccessRecord) error {
+	// Get the user's DM channel
+	channel, err := bot.discord.UserChannelCreate(user.ID)
+	if err != nil {
+		return err
+	}
 
-	// Calculate the SHA1 hash of the message
-	h := sha1.New()
-	h.Write(b)
-	hash := h.Sum(nil)
+	// Format the Services
+	services := []string{}
+	if access.IsNewsScope() {
+		services = append(services, "- News")
+	}
+	if access.IsZerotierScope() {
+		services = append(services, "- ZeroTier")
+	}
+	servicesString := strings.Join(services, "\n")
 
-	// Encode the hash to base64
-	return base64.StdEncoding.EncodeToString(hash)
+	// Create the message
+	message := discordgo.MessageEmbed{
+		Title: "TAB Access",
+		Description: "You have requested access to the TAB Discord Server. The following is your access key which is needed for accessing the TAB services which are also listed.",
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name: "Key",
+				Value: fmt.Sprintf("```\n%s\n```", access.AccessKey),
+			},
+			{
+				Name: "Services",
+				Value: fmt.Sprintf("```\n%s\n```", servicesString),
+			},
+		},
+	}
 
+	// Send the message
+	_, err = bot.discord.ChannelMessageSendEmbed(channel.ID, &message)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
