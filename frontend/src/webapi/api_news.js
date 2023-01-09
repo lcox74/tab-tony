@@ -1,6 +1,6 @@
 import api from './api_helper';
 
-const BACKEND_URL = "http://localhost:3000/"
+const BACKEND_URL = "http://light-candle.bnr.la:3000/"
 
 export default {
 
