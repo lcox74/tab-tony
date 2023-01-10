@@ -52,7 +52,7 @@ export default {
             this.getNodes();
         },
         getNodes() {
-            ZerotierApi.getNodes(this.accesskey,
+            ZerotierApi.getNetworkMembers(this.accesskey,
                 (data) => {
                     this.nodes = data;
                     this.requestedData = true;
