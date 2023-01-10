@@ -104,9 +104,10 @@ func getZeroTierAuth(c *gin.Context) {
 }
 
 type ztNode struct {
-	Name     string `json:"name"`
-	IP       string `json:"ip"`
-	Image    string `json:"image"`
+	User  string `json:"user"`
+	Name  string `json:"name"`
+	IP    string `json:"ip"`
+	Image string `json:"image"`
 }
 
 func getZeroTierNetwork(c *gin.Context) {
@@ -131,7 +132,7 @@ func getZeroTierNetwork(c *gin.Context) {
 		return
 	}
 
-	response := make(map[string][]ztNode)
+	response := make([]ztNode, 0)
 
 	for _, member := range members {
 		// Get Node Member Data
@@ -155,16 +156,14 @@ func getZeroTierNetwork(c *gin.Context) {
 		}
 
 		node := ztNode{
-			Name:     d.MemberName,
-			IP:       ipaddr,
-			Image:    acc.UserAvatarUrl,
+			User:  acc.UserName,
+			Name:  d.MemberName,
+			IP:    ipaddr,
+			Image: acc.UserAvatarUrl,
 		}
 
-		// Create User Array (If Not Exists)
-		if _, ok := response[acc.UserName]; !ok {
-			response[acc.UserName] = make([]ztNode, 0)
-		}
-		response[acc.UserName] = append(response[acc.UserName], node)
+		response = append(response, node)
+		
 	}
 	c.IndentedJSON(http.StatusOK, response)
 }
