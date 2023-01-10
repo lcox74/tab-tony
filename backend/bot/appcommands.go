@@ -64,6 +64,11 @@ func RequestCmd (bot *Bot, s *discordgo.Session, i *discordgo.InteractionCreate)
 
 	// Access options in the order provided by the user.
 	options := i.ApplicationCommandData().Options
+	var user *discordgo.User = getuser(i)
+	// Get the user
+	if user == nil {
+		return
+	}
 
 	// Go through the services
 	for _, option := range options {
@@ -75,14 +80,8 @@ func RequestCmd (bot *Bot, s *discordgo.Session, i *discordgo.InteractionCreate)
 			scope = SCOPE_ZEROTIER
 		}
 
-		// Get the user
-		var user *discordgo.User = getuser(i)
-		if user == nil {
-			return
-		}
-
 		// Add the access
-		access, err := bot.Db.AddAccess(user.ID, user.Username, scope)
+		access, err := bot.Db.AddAccess(user.ID, user.Username, scope, user.AvatarURL("128"))
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -91,15 +90,16 @@ func RequestCmd (bot *Bot, s *discordgo.Session, i *discordgo.InteractionCreate)
 		// Send the access
 		message := accessMessage(access)
 		bot.sendEmbededDM(user, &message)
-
-		// Send the response
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("I've just updated your access, please check your DMs <@%s>", user.ID),
-			},
-		})
 	}
+
+
+	// Send the response
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("I've just updated your access, please check your DMs <@%s>", user.ID),
+		},
+	})
 }
 
 func JoinNetCmd (bot *Bot, s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -122,8 +122,6 @@ func JoinNetCmd (bot *Bot, s *discordgo.Session, i *discordgo.InteractionCreate)
 		return
 	}
 
-	
-	fmt.Printf("User: %s\n", user.Username)
 	var addr, nickname string
 
 	// Access options in the order provided by the user.
@@ -132,10 +130,8 @@ func JoinNetCmd (bot *Bot, s *discordgo.Session, i *discordgo.InteractionCreate)
 	for _, option := range options {
 		switch option.Name {
 		case "address":
-			fmt.Printf("addr: %s\n", option.Value)
 			addr = option.Value.(string)
 		case "nickname":
-			fmt.Printf("nickname: %s\n", option.Value)				
 			nickname = option.Value.(string)
 		}
 	}
@@ -146,6 +142,13 @@ func JoinNetCmd (bot *Bot, s *discordgo.Session, i *discordgo.InteractionCreate)
 	err := zerotier.AuthoriseMember(nwid, addr)
 	if err != nil {
 		fmt.Println(err)
+		// Send the response
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "I appologise, but I can't seem to access the internal network, please get the admin to check the logs.",
+			},
+		})
 		return
 	}
 

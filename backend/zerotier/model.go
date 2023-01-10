@@ -1,6 +1,5 @@
 package zerotier
 
-
 type NetworkAPI struct {
 	Id                    string `json:"id"`
 	Description           string `json:"description"`
@@ -59,7 +58,6 @@ type NetRule struct {
 	Type      string `json:"type"`
 }
 
-
 type NetworkMemberAPI struct {
 	Id          string `json:"id"`
 	Type        string `json:"type"`
@@ -69,7 +67,7 @@ type NetworkMemberAPI struct {
 	IsOnline    bool   `json:"online"`
 	Description string `json:"description"`
 	Config      struct {
-		IsAuthorised 	bool 		`json:"authorized"`
-		AssignedIps 	[]string 	`json:"ipAssignments"`
+		IsAuthorised bool     `json:"authorized"`
+		AssignedIps  []string `json:"ipAssignments"`
 	} `json:"config"`
 }

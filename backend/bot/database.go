@@ -12,34 +12,33 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-
-
 type BotDatabase struct {
 	mutex sync.Mutex
-	db *sql.DB
+	db    *sql.DB
 }
 
 type AccessRecord struct {
-	ID int
-	UserID string
-	UserName string
-	AccessKey string
-	ScopeNews sql.NullTime
+	ID            int
+	UserID        string
+	UserName      string
+	UserAvatarUrl string
+	AccessKey     string
+	ScopeNews     sql.NullTime
 	ScopeZerotier sql.NullTime
 }
 
 type ZeroTierNetworkRecord struct {
-	ID int
-	NetworkID string
+	ID          int
+	NetworkID   string
 	NetworkName string
 }
 
 type ZeroTierMemberRecord struct {
-	ID int
-	NetworkID string
-	MemberID string
+	ID         int
+	NetworkID  string
+	MemberID   string
 	MemberName string
-	UserID string
+	UserID     string
 }
 
 func (r *AccessRecord) IsNewsScope() bool {
@@ -55,6 +54,7 @@ const create string = `
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id TEXT NOT NULL,
 		user_name TEXT NOT NULL,
+		avatar_url TEXT NOT NULL,
 		access_key TEXT NOT NULL,
 		scope_news DATETIME DEFAULT NULL,
 		scope_zerotier DATETIME DEFAULT NULL
@@ -77,19 +77,20 @@ const create string = `
 
 // Scope constants
 type Scope int8
+
 const (
 	SCOPE_NEWS Scope = iota
 	SCOPE_ZEROTIER
 )
 
-func OpenAccessDb() (BotDatabase, error)  {
+func OpenAccessDb() (BotDatabase, error) {
 
 	db, err := sql.Open("sqlite3", "/app/data/tony.db")
 	// db, err := sql.Open("sqlite3", "../database/tony.db")
 	if err != nil {
 		return BotDatabase{}, err
 	}
-	
+
 	if _, err := db.Exec(create); err != nil {
 		return BotDatabase{}, err
 	}
@@ -127,7 +128,7 @@ func (db *BotDatabase) GetUserAccess(userId string) (AccessRecord, error) {
 	var record AccessRecord
 	record.UserID = userId
 
-	err := db.db.QueryRow("SELECT id, user_name, scope_news, scope_zerotier FROM access WHERE user_id = ?", userId).Scan(&record.ID, &record.UserName, &record.ScopeNews, &record.ScopeZerotier)
+	err := db.db.QueryRow("SELECT id, user_name, avatar_url, scope_news, scope_zerotier FROM access WHERE user_id = ?", userId).Scan(&record.ID, &record.UserName, &record.UserAvatarUrl, &record.ScopeNews, &record.ScopeZerotier)
 	if err != nil {
 		return record, err
 	}
@@ -136,7 +137,7 @@ func (db *BotDatabase) GetUserAccess(userId string) (AccessRecord, error) {
 }
 
 // Add User and Access Key to the database
-func (db *BotDatabase) AddAccess(userId string, userName string, scope Scope) (AccessRecord, error) {
+func (db *BotDatabase) AddAccess(userId string, userName string, scope Scope, userAvatarUrl string) (AccessRecord, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
@@ -147,12 +148,12 @@ func (db *BotDatabase) AddAccess(userId string, userName string, scope Scope) (A
 		return AccessRecord{}, err
 	}
 
-
 	var access = AccessRecord{
-		UserID: userId,
-		UserName: userName,
+		UserID:        userId,
+		UserName:      userName,
+		UserAvatarUrl: userAvatarUrl,
 	}
-	
+
 	// If user exists, update the access key
 	if count > 0 {
 		switch scope {
@@ -167,7 +168,7 @@ func (db *BotDatabase) AddAccess(userId string, userName string, scope Scope) (A
 		}
 
 		// Get the access key
-		err = db.db.QueryRow("SELECT access_key, scope_news, scope_zerotier FROM access WHERE user_id = ?", userId).Scan(&access.AccessKey, &access.ScopeNews, &access.ScopeZerotier)
+		err = db.db.QueryRow("SELECT access_key, user_name, scope_news, scope_zerotier, avatar_url FROM access WHERE user_id = ?", userId).Scan(&access.AccessKey, &access.UserName, &access.ScopeNews, &access.ScopeZerotier, &access.UserAvatarUrl)
 		if err != nil {
 			return AccessRecord{}, err
 		}
@@ -182,10 +183,10 @@ func (db *BotDatabase) AddAccess(userId string, userName string, scope Scope) (A
 		// Insert the access key and set the scope
 		switch scope {
 		case SCOPE_NEWS:
-			_, err = db.db.Exec("INSERT INTO access (user_id, user_name, access_key, scope_news) VALUES (?, ?, ?, ?)", userId, userName, access.AccessKey, time.Now())
+			_, err = db.db.Exec("INSERT INTO access (user_id, user_name, access_key, avatar_url, scope_news) VALUES (?, ?, ?, ?, ?)", userId, userName, access.AccessKey, userAvatarUrl, time.Now())
 			access.ScopeNews = sql.NullTime{Time: time.Now(), Valid: true}
 		case SCOPE_ZEROTIER:
-			_, err = db.db.Exec("INSERT INTO access (user_id, user_name, access_key, scope_zerotier) VALUES (?, ?, ?, ?)", userId, userName, access.AccessKey, time.Now())
+			_, err = db.db.Exec("INSERT INTO access (user_id, user_name, access_key, avatar_url, scope_zerotier) VALUES (?, ?, ?, ?, ?)", userId, userName, access.AccessKey, userAvatarUrl, time.Now())
 			access.ScopeZerotier = sql.NullTime{Time: time.Now(), Valid: true}
 		}
 
@@ -193,7 +194,7 @@ func (db *BotDatabase) AddAccess(userId string, userName string, scope Scope) (A
 			return AccessRecord{}, err
 		}
 	}
-	
+
 	return access, nil
 }
 
@@ -209,7 +210,7 @@ func (db *BotDatabase) GetNetwork(networkId string) (ZeroTierNetworkRecord, erro
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
-	var network  = ZeroTierNetworkRecord{
+	var network = ZeroTierNetworkRecord{
 		NetworkID: networkId,
 	}
 	err := db.db.QueryRow("SELECT id, network_name FROM network WHERE network_id = ?", networkId).Scan(&network.ID, &network.NetworkName)
@@ -228,6 +229,10 @@ func (db *BotDatabase) AddMember(networkId, memberId, memberName, user_id string
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
+	if _, err := db.GetMember(networkId, memberId); err == nil {
+		return nil
+	}
+
 	_, err := db.db.Exec("INSERT INTO member (network_id, member_id, member_name, user_id) VALUES (?, ?, ?, ?)", networkId, memberId, memberName, user_id)
 	return err
 }
@@ -236,9 +241,9 @@ func (db *BotDatabase) GetMember(networkId, memberId string) (ZeroTierMemberReco
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
-	var member  = ZeroTierMemberRecord{
+	var member = ZeroTierMemberRecord{
 		NetworkID: networkId,
-		MemberID: memberId,
+		MemberID:  memberId,
 	}
 	err := db.db.QueryRow("SELECT id, member_name, user_id FROM member WHERE network_id = ? AND member_id = ?", networkId, memberId).Scan(&member.ID, &member.MemberName, &member.UserID)
 	return member, err
@@ -257,7 +262,6 @@ func randomPassword(user_id, user_name string) string {
 	b = append(b, []byte(u.String())...)
 	b = append(b, []byte(user_id)...)
 	b = append(b, []byte(user_name)...)
-
 
 	// Calculate the SHA1 hash of the message
 	h := sha1.New()
