@@ -58,16 +58,18 @@ type NetRule struct {
 	Type      string `json:"type"`
 }
 
+
 type NetworkMemberAPI struct {
-	Id          string `json:"id"`
-	Type        string `json:"type"`
-	NetworkId   string `json:"networkId"`
-	MemberId    string `json:"nodeId"`
-	Name        string `json:"name"`
-	IsOnline    bool   `json:"online"`
-	Description string `json:"description"`
-	Config      struct {
-		IsAuthorised bool     `json:"authorized"`
-		AssignedIps  []string `json:"ipAssignments"`
-	} `json:"config"`
+	Id              string   `json:"id"`
+	Address         string   `json:"address"`
+	Nwid            string   `json:"nwid"`
+	Authorized      bool     `json:"authorized"`
+	ActiveBridge    bool     `json:"activeBridge"`
+	Identity        string   `json:"identity"`
+	IpAssignments   []string `json:"ipAssignments"`
+	Revision        int      `json:"revision"`
+	VMajor          int      `json:"vMajor"`
+	VMinor          int      `json:"vMinor"`
+	VRev            int      `json:"vRev"`
+	VProto          int      `json:"vProto"`
 }

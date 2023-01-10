@@ -106,7 +106,6 @@ func getZeroTierAuth(c *gin.Context) {
 type ztNode struct {
 	Name     string `json:"name"`
 	IP       string `json:"ip"`
-	IsActive bool   `json:"active"`
 	Image    string `json:"image"`
 }
 
@@ -136,7 +135,7 @@ func getZeroTierNetwork(c *gin.Context) {
 
 	for _, member := range members {
 		// Get Node Member Data
-		d, err := discordBot.Db.GetMember(nwid, member.MemberId)
+		d, err := discordBot.Db.GetMember(nwid, member.Id)
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
@@ -149,10 +148,15 @@ func getZeroTierNetwork(c *gin.Context) {
 			return
 		}
 
+		// Get IP Assigned
+		ipaddr := ""
+		if len(member.IpAssignments) > 0 {
+			ipaddr = member.IpAssignments[0]
+		}
+
 		node := ztNode{
 			Name:     d.MemberName,
-			IP:       member.Config.AssignedIps[0],
-			IsActive: member.IsOnline,
+			IP:       ipaddr,
 			Image:    acc.UserAvatarUrl,
 		}
 
