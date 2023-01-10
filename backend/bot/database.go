@@ -63,7 +63,7 @@ const create string = `
 	CREATE TABLE IF NOT EXISTS network (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		network_id TEXT NOT NULL,
-		network_name TEXT NOT NULL,
+		network_name TEXT NOT NULL
 	);
 
 	CREATE TABLE IF NOT EXISTS member (
@@ -71,7 +71,7 @@ const create string = `
 		network_id TEXT NOT NULL,
 		member_id TEXT NOT NULL,
 		member_name TEXT NOT NULL,
-		user_id TEXT NOT NULL,
+		user_id TEXT NOT NULL
 	);
 `
 
@@ -89,7 +89,7 @@ func OpenAccessDb() (BotDatabase, error)  {
 	if err != nil {
 		return BotDatabase{}, err
 	}
-
+	
 	if _, err := db.Exec(create); err != nil {
 		return BotDatabase{}, err
 	}
