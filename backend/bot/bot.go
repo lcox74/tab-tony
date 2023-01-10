@@ -65,7 +65,6 @@ func CreateBot(token string) (*Bot, error) {
 		}
 	})
 
-
 	// Open the websocket and begin listening.
 	err = discord.Open()
 	if err != nil {

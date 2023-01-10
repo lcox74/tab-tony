@@ -66,12 +66,6 @@ func CreateNetwork() (*NetworkAPI, error) {
 }
 
 func SetNetworkIPRange(nwid string, start string, end string, subnet string) error {
-	// Check if networkid is valid
-	if !checkValidNetworkId(nwid) {
-		return fmt.Errorf("invalid network id: %s", nwid)
-	}
-
-
 	// Send Request to Create new Network
 	body, status, err := makeRequest("POST", fmt.Sprintf("controller/network/%s", nwid), strings.NewReader(fmt.Sprintf(`{"ipAssignmentPools": [{"ipRangeStart": "%s", "ipRangeEnd": "%s"}], "routes": [{"target": "%s", "via": null}], "v4AssignMode": "zt", "private": true }`, start, end, subnet)))
 	if err != nil {
@@ -87,12 +81,6 @@ func SetNetworkIPRange(nwid string, start string, end string, subnet string) err
 }
 
 func DeleteNetwork(nwid string) error {
-	// Check if networkid is valid
-	if !checkValidNetworkId(nwid) {
-		return fmt.Errorf("invalid network id: %s", nwid)
-	}
-
-
 	// Send Request to Delete Network
 	body, status, err := makeRequest("DELETE", fmt.Sprintf("controller/network/%s", nwid), nil)
 	if err != nil {
@@ -126,11 +114,6 @@ func GetNetworks() ([]NetworkAPI, error) {
 }
 
 func GetNetwork(nwid string) (*NetworkAPI, error) {
-	// Check if networkid is valid
-	if !checkValidNetworkId(nwid) {
-		return nil, fmt.Errorf("invalid network id: %s", nwid)
-	}
-
 	// Send Request to Get Network
 	body, status, err := makeRequest("GET", fmt.Sprintf("controller/network/%s", nwid), nil)
 	if err != nil {
@@ -149,11 +132,6 @@ func GetNetwork(nwid string) (*NetworkAPI, error) {
 }
 
 func GetNetworkMembers(nwid string) ([]NetworkMemberAPI, error) {
-	// Check if networkid is valid
-	if !checkValidNetworkId(nwid) {
-		return nil, fmt.Errorf("invalid network id: %s", nwid)
-	}
-
 	// Send Request to Get Network
 	body, status, err := makeRequest("GET", fmt.Sprintf("controller/network/%s/member", nwid), nil)
 	if err != nil {
@@ -181,17 +159,6 @@ func GetNetworkMembers(nwid string) ([]NetworkMemberAPI, error) {
 }
 
 func GetNetworkMemberInfo(nwid string, memberid string) (*NetworkMemberAPI, error) {
-
-	// Check if networkid is valid
-	if !checkValidNetworkId(nwid) {
-		return nil, fmt.Errorf("invalid network id: %s", nwid)
-	}
-
-	// Check if memberid is valid
-	if !checkValidMemberId(memberid) {
-		return nil, fmt.Errorf("invalid member id: %s", memberid)
-	}
-
 	// Send Request to Get Network
 	body, status, err := makeRequest("GET", fmt.Sprintf("controller/network/%s/member/%s", nwid, memberid), nil)
 	if err != nil {
@@ -210,16 +177,6 @@ func GetNetworkMemberInfo(nwid string, memberid string) (*NetworkMemberAPI, erro
 }
 
 func AuthoriseMember(nwid string, memberid string) error {
-	// Check if networkid is valid
-	if !checkValidNetworkId(nwid) {
-		return fmt.Errorf("invalid network id: %s", nwid)
-	}
-
-	// Check if memberid is valid
-	if !checkValidMemberId(memberid) {
-		return fmt.Errorf("invalid member id: %s", memberid)
-	}
-
 	// Send Request to Authorise Member
 	body, status, err := makeRequest("POST", fmt.Sprintf("controller/network/%s/member/%s", nwid, memberid), strings.NewReader("{ \"authorized\": true }"))
 	if err != nil {
@@ -235,16 +192,6 @@ func AuthoriseMember(nwid string, memberid string) error {
 }
 
 func DeauthoriseMember(nwid string, memberid string) error {
-	// Check if networkid is valid
-	if !checkValidNetworkId(nwid) {
-		return fmt.Errorf("invalid network id: %s", nwid)
-	}
-
-	// Check if memberid is valid
-	if !checkValidMemberId(memberid) {
-		return fmt.Errorf("invalid member id: %s", memberid)
-	}
-
 	// Send Request to Authorise Member
 	body, status, err := makeRequest("POST", fmt.Sprintf("controller/network/%s/member/%s", nwid, memberid), strings.NewReader("{ \"authorized\": false }"))
 	if err != nil {
@@ -260,16 +207,6 @@ func DeauthoriseMember(nwid string, memberid string) error {
 }
 
 func DeleteMember(nwid string, memberid string) error {
-	// Check if networkid is valid
-	if !checkValidNetworkId(nwid) {
-		return fmt.Errorf("invalid network id: %s", nwid)
-	}
-
-	// Check if memberid is valid
-	if !checkValidMemberId(memberid) {
-		return fmt.Errorf("invalid member id: %s", memberid)
-	}
-
 	// Send Request to Delete Member
 	body, status, err := makeRequest("DELETE", fmt.Sprintf("controller/network/%s/member/%s", nwid, memberid), nil)
 	if err != nil {

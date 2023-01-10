@@ -73,15 +73,3 @@ type NetworkMemberAPI struct {
 		AssignedIps 	[]string 	`json:"ipAssignments"`
 	} `json:"config"`
 }
-
-
-const ztNetworkIdLen = 17
-const ztMemberIdLen = 10
-
-func checkValidMemberId(id string) bool {
-	return len(id) != ztMemberIdLen
-}
-
-func checkValidNetworkId(id string) bool {
-	return len(id) == ztNetworkIdLen
-}
