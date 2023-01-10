@@ -22,6 +22,7 @@
 import Verification from '../components/Verification.vue';
 import ZerotierUser from '../components/ZerotierUser.vue';
 import DotLoader from '../components/DotLoader.vue';
+import ZerotierApi from "../webapi/api_zerotier.js";
 
 export default {
     name: 'ZerotierPage',
