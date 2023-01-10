@@ -7,6 +7,7 @@ import './style.css'
 import App from './App.vue'
 import HomePage from './pages/HomePage.vue';
 import NewsPage from './pages/NewsPage.vue';
+import ZerotierPage from './pages/ZerotierPage.vue';
 
 // Set Routes
 const router = createRouter({
@@ -22,7 +23,11 @@ const router = createRouter({
             name: 'News',
             component: NewsPage 
         },
-        // { path: '/zerotier', component: ZerotierPage },
+        { 
+            path: '/zerotier', 
+            name: 'Zerotier',
+            component: ZerotierPage
+        },
     ],
 });
 
