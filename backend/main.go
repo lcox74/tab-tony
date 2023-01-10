@@ -51,7 +51,7 @@ func postNews(c *gin.Context) {
 	}
 
 	// Check Auth
-	if !discordBot.GetUser(bot.SCOPE_NEWS, newsPost.AccessToken) {
+	if !discordBot.GetUserFromKey(bot.SCOPE_NEWS, newsPost.AccessToken) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -78,7 +78,7 @@ func getNewsAuth(c *gin.Context) {
 		return
 	}
 
-	if !discordBot.GetUser(bot.SCOPE_NEWS, access_key) {
+	if !discordBot.GetUserFromKey(bot.SCOPE_NEWS, access_key) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}

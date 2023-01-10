@@ -10,6 +10,9 @@ services:
       - "3000:3000"
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - ZEROTIER_ACCESS_KEY=${ZEROTIER_ACCESS_KEY}
+      - ZEROTIER_NODE_ID=${ZEROTIER_NODE_ID}
+      - ZEROTIER_GENERAL_NET_ID=${ZEROTIER_GENERAL_NET_ID}
     volumes:
       - ./database:/app/data
   frontend:

@@ -28,6 +28,20 @@ type AccessRecord struct {
 	ScopeZerotier sql.NullTime
 }
 
+type ZeroTierNetworkRecord struct {
+	ID int
+	NetworkID string
+	NetworkName string
+}
+
+type ZeroTierMemberRecord struct {
+	ID int
+	NetworkID string
+	MemberID string
+	MemberName string
+	UserID string
+}
+
 func (r *AccessRecord) IsNewsScope() bool {
 	return r.ScopeNews.Valid
 }
@@ -44,6 +58,20 @@ const create string = `
 		access_key TEXT NOT NULL,
 		scope_news DATETIME DEFAULT NULL,
 		scope_zerotier DATETIME DEFAULT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS network (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		network_id TEXT NOT NULL,
+		network_name TEXT NOT NULL,
+	);
+
+	CREATE TABLE IF NOT EXISTS member (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		network_id TEXT NOT NULL,
+		member_id TEXT NOT NULL,
+		member_name TEXT NOT NULL,
+		user_id TEXT NOT NULL,
 	);
 `
 
@@ -84,6 +112,22 @@ func (db *BotDatabase) ValidateAccessKey(accessKey string) (AccessRecord, error)
 	record.AccessKey = accessKey
 
 	err := db.db.QueryRow("SELECT id, user_id, user_name, scope_news, scope_zerotier FROM access WHERE access_key = ?", accessKey).Scan(&record.ID, &record.UserID, &record.UserName, &record.ScopeNews, &record.ScopeZerotier)
+	if err != nil {
+		return record, err
+	}
+
+	return record, nil
+}
+
+// Validate Access Key and get the username and scope
+func (db *BotDatabase) GetUserAccess(userId string) (AccessRecord, error) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	var record AccessRecord
+	record.UserID = userId
+
+	err := db.db.QueryRow("SELECT id, user_name, scope_news, scope_zerotier FROM access WHERE user_id = ?", userId).Scan(&record.ID, &record.UserName, &record.ScopeNews, &record.ScopeZerotier)
 	if err != nil {
 		return record, err
 	}
@@ -151,6 +195,53 @@ func (db *BotDatabase) AddAccess(userId string, userName string, scope Scope) (A
 	}
 	
 	return access, nil
+}
+
+func (db *BotDatabase) AddNetwork(networkId, networkName string) error {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	_, err := db.db.Exec("INSERT INTO network (network_id, network_name) VALUES (?, ?)", networkId, networkName)
+	return err
+}
+
+func (db *BotDatabase) GetNetwork(networkId string) (ZeroTierNetworkRecord, error) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	var network  = ZeroTierNetworkRecord{
+		NetworkID: networkId,
+	}
+	err := db.db.QueryRow("SELECT id, network_name FROM network WHERE network_id = ?", networkId).Scan(&network.ID, &network.NetworkName)
+	return network, err
+}
+
+func (db *BotDatabase) DeleteNetwork(networkId string) error {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	_, err := db.db.Exec("DELETE FROM network WHERE network_id = ?", networkId)
+	return err
+}
+
+func (db *BotDatabase) AddMember(networkId, memberId, memberName, user_id string) error {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	_, err := db.db.Exec("INSERT INTO member (network_id, member_id, member_name, user_id) VALUES (?, ?, ?, ?)", networkId, memberId, memberName, user_id)
+	return err
+}
+
+func (db *BotDatabase) GetMember(networkId, memberId string) (ZeroTierMemberRecord, error) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	var member  = ZeroTierMemberRecord{
+		NetworkID: networkId,
+		MemberID: memberId,
+	}
+	err := db.db.QueryRow("SELECT id, member_name, user_id FROM member WHERE network_id = ? AND member_id = ?", networkId, memberId).Scan(&member.ID, &member.MemberName, &member.UserID)
+	return member, err
 }
 
 func randomPassword(user_id, user_name string) string {
