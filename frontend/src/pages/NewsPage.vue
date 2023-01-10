@@ -2,7 +2,7 @@
 
     <div class="grid h-screen place-items-center">
         
-        <Verification v-if="!Verified" :validate="OnValidate" />
+        <Verification v-if="!Verified" :validate="OnValidate" scope="news" />
         <NewsPost v-else :accesskey="accesskey" />
 
     </div>
